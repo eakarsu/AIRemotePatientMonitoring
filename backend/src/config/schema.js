@@ -194,6 +194,20 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
   model_used VARCHAR(100),
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER,
+  user_email VARCHAR(255),
+  action VARCHAR(100) NOT NULL,
+  resource_type VARCHAR(100),
+  resource_id INTEGER,
+  ip_address VARCHAR(50),
+  details TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'doctor';
 `;
 
 export default schema;

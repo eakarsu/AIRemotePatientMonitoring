@@ -23,3 +23,19 @@ export const authenticateToken = (req, res, next) => {
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
+
+// Role-based access: admin only
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin role required' });
+  }
+  next();
+};
+
+// Role-based: doctor or admin
+export const requireDoctor = (req, res, next) => {
+  if (!['doctor', 'admin'].includes(req.user?.role)) {
+    return res.status(403).json({ error: 'Doctor or admin role required' });
+  }
+  next();
+};

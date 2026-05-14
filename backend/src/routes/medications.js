@@ -7,13 +7,15 @@ router.use(authenticateToken);
 
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT m.*, p.first_name, p.last_name
-      FROM medications m
-      JOIN patients p ON m.patient_id = p.id
-      ORDER BY m.created_at DESC
-    `);
-    res.json(result.rows);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
+    const [result, countResult] = await Promise.all([
+      pool.query(`SELECT m.*, p.first_name, p.last_name FROM medications m JOIN patients p ON m.patient_id = p.id ORDER BY m.created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      pool.query('SELECT COUNT(*) FROM medications')
+    ]);
+    const total = parseInt(countResult.rows[0].count);
+    res.json({ data: result.rows, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

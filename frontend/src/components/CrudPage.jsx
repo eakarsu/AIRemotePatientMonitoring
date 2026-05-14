@@ -1,6 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import Modal from './Modal';
+
+function Pagination({ page, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px' }}>
+      <button className="btn btn-sm btn-secondary" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Prev</button>
+      <span style={{ lineHeight: '32px', fontSize: '14px' }}>Page {page} of {totalPages}</span>
+      <button className="btn btn-sm btn-secondary" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</button>
+    </div>
+  );
+}
 
 export default function CrudPage({
   resource,
@@ -13,6 +24,7 @@ export default function CrudPage({
   aiFeature,
 }) {
   const [items, setItems] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -20,28 +32,46 @@ export default function CrudPage({
   const [formData, setFormData] = useState({});
   const [error, setError] = useState('');
   const [patients, setPatients] = useState([]);
+  const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    loadData();
-    if (resource !== 'patients') {
-      api.getAll('patients').then(setPatients).catch(() => {});
-    }
-  }, [resource]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async (page = 1, searchVal = search) => {
     setLoading(true);
     try {
-      const data = await api.getAll(resource);
-      setItems(data);
+      const res = await api.getAll(resource, { page, limit: 20, ...(searchVal ? { search: searchVal } : {}) });
+      // Handle both paginated and non-paginated responses
+      if (res && res.data) {
+        setItems(res.data);
+        setPagination({ page: res.pagination?.page || 1, totalPages: res.pagination?.totalPages || 1, total: res.pagination?.total || res.data.length });
+      } else if (Array.isArray(res)) {
+        setItems(res);
+        setPagination({ page: 1, totalPages: 1, total: res.length });
+      }
     } catch (err) {
       setError(err.message);
     }
     setLoading(false);
+  }, [resource]);
+
+  useEffect(() => {
+    loadData(1);
+    if (resource !== 'patients') {
+      api.getAll('patients', { limit: 200 }).then(res => {
+        setPatients(Array.isArray(res) ? res : (res?.data || []));
+      }).catch(() => {});
+    }
+  }, [resource]);
+
+  const handlePageChange = (page) => {
+    setPagination(p => ({ ...p, page }));
+    loadData(page);
   };
 
-  const handleRowClick = (item) => {
-    setSelectedItem(item);
+  const handleSearch = (e) => {
+    e.preventDefault();
+    loadData(1, search);
   };
+
+  const handleRowClick = (item) => setSelectedItem(item);
 
   const handleNew = () => {
     setEditItem(null);
@@ -69,6 +99,7 @@ export default function CrudPage({
       await api.delete(resource, item.id);
       setItems(items.filter(i => i.id !== item.id));
       setSelectedItem(null);
+      loadData(pagination.page);
     } catch (err) {
       alert(err.message);
     }
@@ -81,8 +112,8 @@ export default function CrudPage({
         const updated = await api.update(resource, editItem.id, formData);
         setItems(items.map(i => i.id === editItem.id ? updated : i));
       } else {
-        const created = await api.create(resource, formData);
-        setItems([created, ...items]);
+        await api.create(resource, formData);
+        loadData(1);
       }
       setShowForm(false);
       setError('');
@@ -171,8 +202,20 @@ export default function CrudPage({
 
       <div className="data-table-container">
         <div className="table-header">
-          <h2>{icon} {title} ({items.length})</h2>
-          <button className="btn btn-primary" onClick={handleNew}>+ New {title.replace(/s$/, '')}</button>
+          <h2>{icon} {title} ({pagination.total})</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '4px' }}>
+              <input
+                className="form-control"
+                style={{ width: '200px', padding: '6px 10px', fontSize: '13px' }}
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <button type="submit" className="btn btn-secondary btn-sm">Search</button>
+            </form>
+            <button className="btn btn-primary" onClick={handleNew}>+ New {title.replace(/s$/, '')}</button>
+          </div>
         </div>
         <div className="table-wrapper">
           <table className="data-table">
@@ -204,6 +247,7 @@ export default function CrudPage({
             </tbody>
           </table>
         </div>
+        <Pagination page={pagination.page} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
       </div>
 
       {/* Create/Edit Modal */}

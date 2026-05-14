@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -7,6 +8,7 @@ import { dirname, join } from 'path';
 import pool from './config/database.js';
 import schema from './config/schema.js';
 import seedData from './config/seed.js';
+import { generalLimiter } from './middleware/rateLimiter.js';
 
 import authRoutes from './routes/auth.js';
 import patientRoutes from './routes/patients.js';
@@ -28,9 +30,15 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3001;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
-app.use(cors());
+app.use(helmet());
+app.use(cors({
+  origin: CLIENT_URL,
+  credentials: true,
+}));
 app.use(express.json());
+app.use(generalLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -46,6 +54,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/emergency-protocols', emergencyRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/patient-reports', reportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -100,3 +109,23 @@ initDatabase().then(() => {
     console.log(`Backend server running on http://localhost:${PORT}`);
   });
 });
+
+// AI feature mount: decompensation-alert
+import aiDecompensationalertRoutes from './routes/ai-decompensation-alert.js';
+app.use('/api/ai/decompensation-alert', aiDecompensationalertRoutes);
+// === Batch 07 Gaps & Frontend Mounts ===
+app.use('/api/gap-no-decompensationalert-predict-acute-events', require('./routes/gap-no-decompensationalert-predict-acute-events'));
+app.use('/api/gap-no-medicationoptimization-appropriateness-co', require('./routes/gap-no-medicationoptimization-appropriateness-co'));
+app.use('/api/gap-no-socialdeterminantsassessment', require('./routes/gap-no-socialdeterminantsassessment'));
+app.use('/api/gap-no-mentalhealthscreening-phq9-gad7-automatio', require('./routes/gap-no-mentalhealthscreening-phq9-gad7-automatio'));
+app.use('/api/gap-no-patienteducationcustomizer-literacylangua', require('./routes/gap-no-patienteducationcustomizer-literacylangua'));
+app.use('/api/gap-no-anomaly-detection-on-vitals-stream', require('./routes/gap-no-anomaly-detection-on-vitals-stream'));
+app.use('/api/gap-no-wearable-integration-apple-health-fitbit', require('./routes/gap-no-wearable-integration-apple-health-fitbit'));
+app.use('/api/gap-no-cgm-data-pipeline-dexcom-libre', require('./routes/gap-no-cgm-data-pipeline-dexcom-libre'));
+app.use('/api/gap-no-medication-refill-automation-pharmacy-int', require('./routes/gap-no-medication-refill-automation-pharmacy-int'));
+app.use('/api/gap-no-telehealth-video-integration', require('./routes/gap-no-telehealth-video-integration'));
+app.use('/api/gap-no-patient-messaging-secure-inbox', require('./routes/gap-no-patient-messaging-secure-inbox'));
+app.use('/api/gap-no-phr-export-ccda-fhir-bulk', require('./routes/gap-no-phr-export-ccda-fhir-bulk'));
+app.use('/api/gap-no-ehr-hl7fhir-connector', require('./routes/gap-no-ehr-hl7fhir-connector'));
+app.use('/api/gap-no-caregiver-portal', require('./routes/gap-no-caregiver-portal'));
+// === End Batch 07 ===

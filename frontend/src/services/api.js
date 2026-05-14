@@ -25,12 +25,25 @@ export const api = {
   // Dashboard
   dashboard: () => request('/dashboard'),
 
-  // CRUD operations for all entities
-  getAll: (resource) => request(`/${resource}`),
+  // CRUD operations with pagination
+  getAll: (resource, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/${resource}${qs ? '?' + qs : ''}`);
+  },
   getOne: (resource, id) => request(`/${resource}/${id}`),
   create: (resource, data) => request(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
   update: (resource, id, data) => request(`/${resource}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (resource, id) => request(`/${resource}/${id}`, { method: 'DELETE' }),
+
+  // Patient-specific
+  getPatientVitals: (patientId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/vitals/patient/${patientId}${qs ? '?' + qs : ''}`);
+  },
+  getMEWS: (patientId) => request(`/patients/${patientId}/mews`),
+
+  // Vitals ingest
+  ingestVitals: (data) => request('/vitals/ingest', { method: 'POST', body: JSON.stringify(data) }),
 
   // AI endpoints
   aiHealthRisk: (patientId) => request(`/ai/health-risk/${patientId}`, { method: 'POST' }),
@@ -39,5 +52,10 @@ export const api = {
   aiTreatment: (patientId, diagnosis) => request(`/ai/treatment/${patientId}`, { method: 'POST', body: JSON.stringify({ diagnosis }) }),
   aiCarePlan: (patientId, conditions) => request(`/ai/care-plan/${patientId}`, { method: 'POST', body: JSON.stringify({ conditions }) }),
   aiBilling: () => request('/ai/billing-optimization', { method: 'POST' }),
-  aiHistory: () => request('/ai/history'),
+  aiGenerateReport: (patientId) => request(`/ai/patient-reports/${patientId}/generate`, { method: 'POST' }),
+  aiCheckInteractions: (medications, patientId) => request('/ai/medications/check-interactions', { method: 'POST', body: JSON.stringify({ medications, patient_id: patientId }) }),
+  aiHistory: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/ai/history${qs ? '?' + qs : ''}`);
+  },
 };
