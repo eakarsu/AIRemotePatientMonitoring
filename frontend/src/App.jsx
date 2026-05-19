@@ -41,6 +41,7 @@ import SharedDecisionPage from'./pages/SharedDecisionPage';
 import LongitudinalTrajectoryPage from'./pages/LongitudinalTrajectoryPage';
 import CostAwarePlanPage from'./pages/CostAwarePlanPage';
 import CaregiverCoachingPage from'./pages/CaregiverCoachingPage';
+import CustomViewsPage from './pages/CustomViewsPage.js';
 function App(){
 const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);
 useEffect(()=>{const t=localStorage.getItem('token');const u=localStorage.getItem('user');if(t&&u)setUser(JSON.parse(u));setLoading(false);},[]);
@@ -66,6 +67,7 @@ return(<BrowserRouter><Routes>
 <Route path="/longitudinal-trajectory" element={<LongitudinalTrajectoryPage/>}/>
 <Route path="/cost-aware-plan" element={<CostAwarePlanPage/>}/>
 <Route path="/caregiver-coaching" element={<CaregiverCoachingPage/>}/>
+<Route path="/custom-views" element={<CustomViewsPage/>}/>
           // === Batch 07 Gaps & Frontend Mounts ===
           <Route path='/cf-predictive-decompensation-alerts' element={<CfPredictiveDecompensationAlerts />} />
           <Route path='/cf-shared-decisionmaking-tool' element={<CfSharedDecisionmakingTool />} />

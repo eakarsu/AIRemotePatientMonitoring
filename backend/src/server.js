@@ -23,6 +23,7 @@ import reportRoutes from './routes/reports.js';
 import billingRoutes from './routes/billing.js';
 import emergencyRoutes from './routes/emergencyProtocols.js';
 import aiRoutes from './routes/ai.js';
+import customViewsRoutes from './routes/customViews.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,6 +56,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/emergency-protocols', emergencyRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/patient-reports', reportRoutes);
+app.use('/api/custom-views', customViewsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -113,19 +115,29 @@ initDatabase().then(() => {
 // AI feature mount: decompensation-alert
 import aiDecompensationalertRoutes from './routes/ai-decompensation-alert.js';
 app.use('/api/ai/decompensation-alert', aiDecompensationalertRoutes);
-// === Batch 07 Gaps & Frontend Mounts ===
-app.use('/api/gap-no-decompensationalert-predict-acute-events', require('./routes/gap-no-decompensationalert-predict-acute-events'));
-app.use('/api/gap-no-medicationoptimization-appropriateness-co', require('./routes/gap-no-medicationoptimization-appropriateness-co'));
-app.use('/api/gap-no-socialdeterminantsassessment', require('./routes/gap-no-socialdeterminantsassessment'));
-app.use('/api/gap-no-mentalhealthscreening-phq9-gad7-automatio', require('./routes/gap-no-mentalhealthscreening-phq9-gad7-automatio'));
-app.use('/api/gap-no-patienteducationcustomizer-literacylangua', require('./routes/gap-no-patienteducationcustomizer-literacylangua'));
-app.use('/api/gap-no-anomaly-detection-on-vitals-stream', require('./routes/gap-no-anomaly-detection-on-vitals-stream'));
-app.use('/api/gap-no-wearable-integration-apple-health-fitbit', require('./routes/gap-no-wearable-integration-apple-health-fitbit'));
-app.use('/api/gap-no-cgm-data-pipeline-dexcom-libre', require('./routes/gap-no-cgm-data-pipeline-dexcom-libre'));
-app.use('/api/gap-no-medication-refill-automation-pharmacy-int', require('./routes/gap-no-medication-refill-automation-pharmacy-int'));
-app.use('/api/gap-no-telehealth-video-integration', require('./routes/gap-no-telehealth-video-integration'));
-app.use('/api/gap-no-patient-messaging-secure-inbox', require('./routes/gap-no-patient-messaging-secure-inbox'));
-app.use('/api/gap-no-phr-export-ccda-fhir-bulk', require('./routes/gap-no-phr-export-ccda-fhir-bulk'));
-app.use('/api/gap-no-ehr-hl7fhir-connector', require('./routes/gap-no-ehr-hl7fhir-connector'));
-app.use('/api/gap-no-caregiver-portal', require('./routes/gap-no-caregiver-portal'));
+// === Batch 07 Gaps & Frontend Mounts (converted from CommonJS require() to dynamic ESM imports) ===
+const gapMounts = [
+  ['/api/gap-no-decompensationalert-predict-acute-events', './routes/gap-no-decompensationalert-predict-acute-events.js'],
+  ['/api/gap-no-medicationoptimization-appropriateness-co', './routes/gap-no-medicationoptimization-appropriateness-co.js'],
+  ['/api/gap-no-socialdeterminantsassessment', './routes/gap-no-socialdeterminantsassessment.js'],
+  ['/api/gap-no-mentalhealthscreening-phq9-gad7-automatio', './routes/gap-no-mentalhealthscreening-phq9-gad7-automatio.js'],
+  ['/api/gap-no-patienteducationcustomizer-literacylangua', './routes/gap-no-patienteducationcustomizer-literacylangua.js'],
+  ['/api/gap-no-anomaly-detection-on-vitals-stream', './routes/gap-no-anomaly-detection-on-vitals-stream.js'],
+  ['/api/gap-no-wearable-integration-apple-health-fitbit', './routes/gap-no-wearable-integration-apple-health-fitbit.js'],
+  ['/api/gap-no-cgm-data-pipeline-dexcom-libre', './routes/gap-no-cgm-data-pipeline-dexcom-libre.js'],
+  ['/api/gap-no-medication-refill-automation-pharmacy-int', './routes/gap-no-medication-refill-automation-pharmacy-int.js'],
+  ['/api/gap-no-telehealth-video-integration', './routes/gap-no-telehealth-video-integration.js'],
+  ['/api/gap-no-patient-messaging-secure-inbox', './routes/gap-no-patient-messaging-secure-inbox.js'],
+  ['/api/gap-no-phr-export-ccda-fhir-bulk', './routes/gap-no-phr-export-ccda-fhir-bulk.js'],
+  ['/api/gap-no-ehr-hl7fhir-connector', './routes/gap-no-ehr-hl7fhir-connector.js'],
+  ['/api/gap-no-caregiver-portal', './routes/gap-no-caregiver-portal.js'],
+];
+for (const [mountPath, modulePath] of gapMounts) {
+  try {
+    const mod = await import(modulePath);
+    app.use(mountPath, mod.default || mod);
+  } catch (e) {
+    console.warn(`Skipping mount ${mountPath}: ${e.message}`);
+  }
+}
 // === End Batch 07 ===

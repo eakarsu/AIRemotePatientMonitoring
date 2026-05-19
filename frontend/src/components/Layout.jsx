@@ -15,6 +15,7 @@ const navItems=[
 {path:'/longitudinal-trajectory',icon:'📈',label:'Trajectory'},
 {path:'/cost-aware-plan',icon:'💵',label:'Cost-Aware Plan'},
 {path:'/caregiver-coaching',icon:'🫶',label:'Caregiver Coach'},
+{path:'/custom-views',icon:'📉',label:'Patient Analytics'},
 ];
 export default function Layout({children,user,onLogout}){
 const location=useLocation();
