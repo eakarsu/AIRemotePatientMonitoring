@@ -24,6 +24,7 @@ import billingRoutes from './routes/billing.js';
 import emergencyRoutes from './routes/emergencyProtocols.js';
 import aiRoutes from './routes/ai.js';
 import customViewsRoutes from './routes/customViews.js';
+import escalationLadderRoutes from './routes/escalationLadder.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,6 +58,7 @@ app.use('/api/emergency-protocols', emergencyRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/patient-reports', reportRoutes);
 app.use('/api/custom-views', customViewsRoutes);
+app.use('/api/escalation-ladder', escalationLadderRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

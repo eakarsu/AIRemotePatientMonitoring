@@ -1,5 +1,5 @@
 // // === Batch 07 Gaps & Frontend Mounts ===
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 const FEATURE_SLUG = 'no-medication-refill-automation-pharmacy-int';
@@ -73,4 +73,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

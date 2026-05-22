@@ -41,7 +41,11 @@ import SharedDecisionPage from'./pages/SharedDecisionPage';
 import LongitudinalTrajectoryPage from'./pages/LongitudinalTrajectoryPage';
 import CostAwarePlanPage from'./pages/CostAwarePlanPage';
 import CaregiverCoachingPage from'./pages/CaregiverCoachingPage';
+import EscalationLadderPage from'./pages/EscalationLadderPage';
 import CustomViewsPage from './pages/CustomViewsPage.js';
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
 function App(){
 const[user,setUser]=useState(null);const[loading,setLoading]=useState(true);
 useEffect(()=>{const t=localStorage.getItem('token');const u=localStorage.getItem('user');if(t&&u)setUser(JSON.parse(u));setLoading(false);},[]);
@@ -49,6 +53,9 @@ const handleLogin=(u,t)=>{localStorage.setItem('token',t);localStorage.setItem('
 const handleLogout=()=>{localStorage.removeItem('token');localStorage.removeItem('user');setUser(null);};
 if(loading)return<div className="loading"><div className="spinner"></div>Loading...</div>;
 return(<BrowserRouter><Routes>
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
 <Route path="/login" element={user?<Navigate to="/"/>:<Login onLogin={handleLogin}/>}/>
 <Route path="/*" element={user?(<Layout user={user} onLogout={handleLogout}><Routes>
 <Route path="/" element={<Dashboard/>}/><Route path="/patients" element={<PatientsPage/>}/>
@@ -67,6 +74,7 @@ return(<BrowserRouter><Routes>
 <Route path="/longitudinal-trajectory" element={<LongitudinalTrajectoryPage/>}/>
 <Route path="/cost-aware-plan" element={<CostAwarePlanPage/>}/>
 <Route path="/caregiver-coaching" element={<CaregiverCoachingPage/>}/>
+<Route path="/escalation-ladder" element={<EscalationLadderPage/>}/>
 <Route path="/custom-views" element={<CustomViewsPage/>}/>
           // === Batch 07 Gaps & Frontend Mounts ===
           <Route path='/cf-predictive-decompensation-alerts' element={<CfPredictiveDecompensationAlerts />} />
