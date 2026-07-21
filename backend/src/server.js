@@ -6,8 +6,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 import pool from './config/database.js';
-import schema from './config/schema.js';
-import seedData from './config/seed.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 import authRoutes from './routes/auth.js';
@@ -33,6 +31,7 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+if ((process.env.JWT_SECRET || '').length < 32 || !process.env.GOVERNANCE_TENANT_ID || !process.env.DATABASE_URL) throw new Error('JWT_SECRET, GOVERNANCE_TENANT_ID, and DATABASE_URL are required');
 
 app.use(helmet());
 app.use(cors({
@@ -55,10 +54,13 @@ app.use('/api/consultations', consultationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/emergency-protocols', emergencyRoutes);
-app.use('/api/ai', aiRoutes);
+if (process.env.ENABLE_GENERATED_ROUTES === 'true' && process.env.NODE_ENV !== 'production') app.use('/api/ai', aiRoutes);
 app.use('/api/patient-reports', reportRoutes);
 app.use('/api/custom-views', customViewsRoutes);
 app.use('/api/escalation-ladder', escalationLadderRoutes);
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+app.use('/api/governed-remote-monitoring', require('./governance/index.cjs'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -90,56 +92,4 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
-// Initialize DB
-async function initDatabase() {
-  try {
-    await pool.query(schema);
-    console.log('Database schema created successfully');
-
-    const userCheck = await pool.query('SELECT COUNT(*) FROM users');
-    if (parseInt(userCheck.rows[0].count) === 0) {
-      await pool.query(seedData);
-      console.log('Seed data inserted successfully');
-    } else {
-      console.log('Database already seeded, skipping...');
-    }
-  } catch (err) {
-    console.error('Database initialization error:', err.message);
-  }
-}
-
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
-  });
-});
-
-// AI feature mount: decompensation-alert
-import aiDecompensationalertRoutes from './routes/ai-decompensation-alert.js';
-app.use('/api/ai/decompensation-alert', aiDecompensationalertRoutes);
-// === Batch 07 Gaps & Frontend Mounts (converted from CommonJS require() to dynamic ESM imports) ===
-const gapMounts = [
-  ['/api/gap-no-decompensationalert-predict-acute-events', './routes/gap-no-decompensationalert-predict-acute-events.js'],
-  ['/api/gap-no-medicationoptimization-appropriateness-co', './routes/gap-no-medicationoptimization-appropriateness-co.js'],
-  ['/api/gap-no-socialdeterminantsassessment', './routes/gap-no-socialdeterminantsassessment.js'],
-  ['/api/gap-no-mentalhealthscreening-phq9-gad7-automatio', './routes/gap-no-mentalhealthscreening-phq9-gad7-automatio.js'],
-  ['/api/gap-no-patienteducationcustomizer-literacylangua', './routes/gap-no-patienteducationcustomizer-literacylangua.js'],
-  ['/api/gap-no-anomaly-detection-on-vitals-stream', './routes/gap-no-anomaly-detection-on-vitals-stream.js'],
-  ['/api/gap-no-wearable-integration-apple-health-fitbit', './routes/gap-no-wearable-integration-apple-health-fitbit.js'],
-  ['/api/gap-no-cgm-data-pipeline-dexcom-libre', './routes/gap-no-cgm-data-pipeline-dexcom-libre.js'],
-  ['/api/gap-no-medication-refill-automation-pharmacy-int', './routes/gap-no-medication-refill-automation-pharmacy-int.js'],
-  ['/api/gap-no-telehealth-video-integration', './routes/gap-no-telehealth-video-integration.js'],
-  ['/api/gap-no-patient-messaging-secure-inbox', './routes/gap-no-patient-messaging-secure-inbox.js'],
-  ['/api/gap-no-phr-export-ccda-fhir-bulk', './routes/gap-no-phr-export-ccda-fhir-bulk.js'],
-  ['/api/gap-no-ehr-hl7fhir-connector', './routes/gap-no-ehr-hl7fhir-connector.js'],
-  ['/api/gap-no-caregiver-portal', './routes/gap-no-caregiver-portal.js'],
-];
-for (const [mountPath, modulePath] of gapMounts) {
-  try {
-    const mod = await import(modulePath);
-    app.use(mountPath, mod.default || mod);
-  } catch (e) {
-    console.warn(`Skipping mount ${mountPath}: ${e.message}`);
-  }
-}
-// === End Batch 07 ===
+app.listen(PORT, () => { console.log(`Backend server running on http://localhost:${PORT}`); });

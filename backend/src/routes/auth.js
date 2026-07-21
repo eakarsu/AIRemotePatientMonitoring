@@ -22,9 +22,9 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, full_name: user.full_name },
+      { id: user.id, email: user.email, role: user.role, full_name: user.full_name, tenantId: process.env.GOVERNANCE_TENANT_ID, subjectIds: [`actor:user:${user.id}`] },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { algorithm: 'HS256', expiresIn: '24h' }
     );
 
     res.json({ token, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } });
@@ -35,12 +35,13 @@ router.post('/login', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, full_name, role } = req.body;
+    const { email, password, full_name } = req.body;
+    if (!email || !full_name || typeof password !== 'string' || password.length < 12) return res.status(400).json({ error: 'Email, name, and a password of at least 12 characters are required' });
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
       'INSERT INTO users (email, password, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role',
-      [email, hashedPassword, full_name, role || 'doctor']
+      [email, hashedPassword, full_name, 'viewer']
     );
 
     res.status(201).json(result.rows[0]);
