@@ -35,7 +35,8 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new LLMUnavailableError();
   }
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const baseUrl = (process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -55,8 +56,10 @@ async function callOpenRouter(systemPrompt, userMessage, jsonMode = false) {
   });
 
   const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || `OpenRouter HTTP ${response.status}`);
   if (data.error) throw new Error(data.error.message || 'OpenRouter API error');
-  const content = data.choices?.[0]?.message?.content || 'No response generated';
+  const content = data.choices?.[0]?.message?.content;
+  if (!content || !String(content).trim()) throw new Error('OpenRouter returned an empty response');
   if (jsonMode) return parseAIJson(content);
   return content;
 }

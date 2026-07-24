@@ -54,7 +54,7 @@ app.use('/api/consultations', consultationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/emergency-protocols', emergencyRoutes);
-if (process.env.ENABLE_GENERATED_ROUTES === 'true' && process.env.NODE_ENV !== 'production') app.use('/api/ai', aiRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api/patient-reports', reportRoutes);
 app.use('/api/custom-views', customViewsRoutes);
 app.use('/api/escalation-ladder', escalationLadderRoutes);
