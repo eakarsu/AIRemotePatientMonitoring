@@ -23,6 +23,7 @@ import emergencyRoutes from './routes/emergencyProtocols.js';
 import aiRoutes from './routes/ai.js';
 import customViewsRoutes from './routes/customViews.js';
 import escalationLadderRoutes from './routes/escalationLadder.js';
+import generatedFeaturesRoutes from './routes/generatedFeatures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,6 +59,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/patient-reports', reportRoutes);
 app.use('/api/custom-views', customViewsRoutes);
 app.use('/api/escalation-ladder', escalationLadderRoutes);
+app.use('/api', generatedFeaturesRoutes);
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 app.use('/api/governed-remote-monitoring', require('./governance/index.cjs'));
