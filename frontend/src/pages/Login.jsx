@@ -64,7 +64,7 @@ export default function Login({ onLogin }) {
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
           <button className="btn-autofill" onClick={handleAutoFill}>
-            Auto-fill Demo Credentials
+            Auto Fill Demo Credentials
           </button>
         </div>
 
