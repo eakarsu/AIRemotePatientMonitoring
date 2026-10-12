@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import Modal from './Modal';
+import AIOutput from './AIOutput';
 
 function Pagination({ page, totalPages, onPageChange }) {
   if (totalPages <= 1) return null;
@@ -39,13 +40,11 @@ export default function CrudPage({
     try {
       const res = await api.getAll(resource, { page, limit: 20, ...(searchVal ? { search: searchVal } : {}) });
       // Handle both paginated and non-paginated responses
-      if (res && res.data) {
-        setItems(res.data);
-        setPagination({ page: res.pagination?.page || 1, totalPages: res.pagination?.totalPages || 1, total: res.pagination?.total || res.data.length });
-      } else if (Array.isArray(res)) {
-        setItems(res);
-        setPagination({ page: 1, totalPages: 1, total: res.length });
-      }
+      const rows = Array.isArray(res) ? res : res?.data;
+      if (!Array.isArray(rows)) throw new Error(`Unexpected ${resource} response: expected a record list`);
+      setItems(rows);
+      setPagination({ page: res?.pagination?.page || page, totalPages: res?.pagination?.totalPages || 1, total: res?.pagination?.total ?? rows.length });
+      setError('');
     } catch (err) {
       setError(err.message);
     }
@@ -56,7 +55,7 @@ export default function CrudPage({
     loadData(1);
     if (resource !== 'patients') {
       api.getAll('patients', { limit: 200 }).then(res => {
-        setPatients(Array.isArray(res) ? res : (res?.data || []));
+        setPatients(Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []));
       }).catch(() => {});
     }
   }, [resource]);
@@ -177,6 +176,8 @@ export default function CrudPage({
                         <span className={getBadgeClass(String(val))}>{String(val)}</span>
                       ) : key.includes('date') || key.includes('_at') ? (
                         formatDateTime(val)
+                      ) : /^(content|result|analysis|report)$/i.test(key) && val != null ? (
+                        <AIOutput content={val} title={key.replace(/_/g, ' ')} />
                       ) : (
                         String(val ?? '-')
                       )}

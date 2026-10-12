@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function SocialDeterminantsPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [notes, setNotes] = useState('');
@@ -24,14 +28,14 @@ export default function SocialDeterminantsPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/social-determinants/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/social-determinants/${selectedPatient}`, { ...({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ notes })
-      });
+        body: JSON.stringify({ screeningAnswers: { notes } })
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Request failed');
       setResult(data?.analysis || data);
@@ -43,7 +47,7 @@ export default function SocialDeterminantsPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>🏘️ Social Determinants Assessment</h2></div>
         <div className="detail-body">
@@ -53,7 +57,7 @@ export default function SocialDeterminantsPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
@@ -63,7 +67,7 @@ export default function SocialDeterminantsPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Clinician / intake notes (optional)</label>
-            <textarea
+            <textarea data-ai-field="notes"
               className="form-control"
               rows={5}
               value={notes}
@@ -89,6 +93,6 @@ export default function SocialDeterminantsPage() {
       {result && !loading && (
         <AIOutput content={result} title="Social Determinants" />
       )}
-    </div>
+    </div></NativeAIControls>
   );
 }

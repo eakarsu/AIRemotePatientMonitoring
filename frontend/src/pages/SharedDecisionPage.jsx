@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function SharedDecisionPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [decisionTopic, setDecisionTopic] = useState('');
@@ -24,11 +28,11 @@ export default function SharedDecisionPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/shared-decision/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/shared-decision/${selectedPatient}`, { ...({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ decisionTopic, values, constraints })
-      });
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       if (res.status === 503) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'AI provider not configured. Set OPENROUTER_API_KEY on the server to enable shared decision-making.');
@@ -45,7 +49,7 @@ export default function SharedDecisionPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>🤝 Shared Decision-Making Aid</h2></div>
         <div className="detail-body">
@@ -54,24 +58,24 @@ export default function SharedDecisionPage() {
           </p>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (<option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>))}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Decision topic</label>
-            <input className="form-control" value={decisionTopic} onChange={e => setDecisionTopic(e.target.value)}
+            <input data-ai-field="decisionTopic" className="form-control" value={decisionTopic} onChange={e => setDecisionTopic(e.target.value)}
               placeholder="e.g., anticoagulation in atrial fibrillation; dialysis modality choice" />
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient values (optional)</label>
-            <textarea className="form-control" rows={2} value={values} onChange={e => setValues(e.target.value)}
+            <textarea data-ai-field="values" className="form-control" rows={2} value={values} onChange={e => setValues(e.target.value)}
               placeholder="e.g., wants to keep traveling, dislikes daily injections, fears bleeding" />
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Constraints (optional)</label>
-            <input className="form-control" value={constraints} onChange={e => setConstraints(e.target.value)}
+            <input data-ai-field="constraints" className="form-control" value={constraints} onChange={e => setConstraints(e.target.value)}
               placeholder="e.g., uninsured, rural area, language other than English" />
           </div>
           {error && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{error}</div>}
@@ -82,6 +86,6 @@ export default function SharedDecisionPage() {
       </div>
       {loading && (<div className="loading" style={{ padding: 40 }}><div className="spinner"></div>AI is processing...</div>)}
       {result && !loading && (<AIOutput content={result} title="Shared Decision-Making Aid" />)}
-    </div>
+    </div></NativeAIControls>
   );
 }

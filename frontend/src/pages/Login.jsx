@@ -6,10 +6,18 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || '';
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || '';
+  const demoConfigured = Boolean(demoEmail && demoPassword);
 
   const handleAutoFill = () => {
-    setEmail(import.meta.env.VITE_DEMO_EMAIL || '');
-    setPassword(import.meta.env.VITE_DEMO_PASSWORD || '');
+    if (!demoConfigured) {
+      setError('Demo credentials are not configured for this app. Use your existing account credentials.');
+      return;
+    }
+    setError('');
+    setEmail(demoEmail);
+    setPassword(demoPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -63,14 +71,11 @@ export default function Login({ onLogin }) {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <button className="btn-autofill" onClick={handleAutoFill}>
-            Auto Fill Demo Credentials
+          <button type="button" className="btn-autofill" onClick={handleAutoFill} disabled={loading || !demoConfigured}>
+            Fill Demo Credentials
           </button>
+          {!demoConfigured && <p role="status" style={{ fontSize: '12px', color: '#64748b' }}>Demo credentials are unavailable in this frontend configuration.</p>}
         </div>
-
-        <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: '#9ca3af' }}>
-          Demo: admin@rpm.com / admin123
-        </p>
       </div>
     </div>
   );

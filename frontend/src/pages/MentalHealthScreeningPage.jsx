@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function MentalHealthScreeningPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [phq9, setPhq9] = useState('');
@@ -26,18 +30,18 @@ export default function MentalHealthScreeningPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/mental-health-screening/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/mental-health-screening/${selectedPatient}`, { ...({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          phq9Score: phq9 === '' ? undefined : Number(phq9),
+          answers: { phq9Score: phq9 === '' ? undefined : Number(phq9),
           gad7Score: gad7 === '' ? undefined : Number(gad7),
-          notes
+          notes }, instruments: ['PHQ-9', 'GAD-7']
         })
-      });
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Request failed');
       setResult(data?.analysis || data);
@@ -49,7 +53,7 @@ export default function MentalHealthScreeningPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>🧠 Mental Health Screening</h2></div>
         <div className="detail-body">
@@ -59,7 +63,7 @@ export default function MentalHealthScreeningPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
@@ -70,7 +74,7 @@ export default function MentalHealthScreeningPage() {
           <div className="form-row" style={{ marginBottom: 16 }}>
             <div className="form-group">
               <label>PHQ-9 score (0-27)</label>
-              <input
+              <input data-ai-field="phq9" data-ai-manual
                 type="number" min="0" max="27"
                 className="form-control"
                 value={phq9}
@@ -79,7 +83,7 @@ export default function MentalHealthScreeningPage() {
             </div>
             <div className="form-group">
               <label>GAD-7 score (0-21)</label>
-              <input
+              <input data-ai-field="gad7" data-ai-manual
                 type="number" min="0" max="21"
                 className="form-control"
                 value={gad7}
@@ -90,7 +94,7 @@ export default function MentalHealthScreeningPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Clinical notes (optional)</label>
-            <textarea
+            <textarea data-ai-field="notes"
               className="form-control"
               rows={4}
               value={notes}
@@ -116,6 +120,6 @@ export default function MentalHealthScreeningPage() {
       {result && !loading && (
         <AIOutput content={result} title="Mental Health Screening" />
       )}
-    </div>
+    </div></NativeAIControls>
   );
 }

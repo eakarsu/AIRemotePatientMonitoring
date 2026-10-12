@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function CostAwarePlanPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
@@ -23,11 +27,11 @@ export default function CostAwarePlanPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/cost-aware-plan/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/cost-aware-plan/${selectedPatient}`, { ...({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ diagnosis, formularyContext })
-      });
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       if (res.status === 503) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'AI provider not configured. Set OPENROUTER_API_KEY on the server to enable cost-aware planning.');
@@ -44,7 +48,7 @@ export default function CostAwarePlanPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>💵 Cost-Aware Treatment Plan</h2></div>
         <div className="detail-body">
@@ -53,19 +57,19 @@ export default function CostAwarePlanPage() {
           </p>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (<option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>))}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Diagnosis</label>
-            <input className="form-control" value={diagnosis} onChange={e => setDiagnosis(e.target.value)}
+            <input data-ai-field="diagnosis" className="form-control" value={diagnosis} onChange={e => setDiagnosis(e.target.value)}
               placeholder="e.g., type 2 diabetes, hypertension stage 2" />
           </div>
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Formulary / insurance context (optional)</label>
-            <textarea className="form-control" rows={3} value={formularyContext} onChange={e => setFormularyContext(e.target.value)}
+            <textarea data-ai-field="formularyContext" className="form-control" rows={3} value={formularyContext} onChange={e => setFormularyContext(e.target.value)}
               placeholder="e.g., Medicaid formulary, $40 generic copay tier, no specialty drug coverage" />
           </div>
           {error && <div className="alert alert-danger" style={{ marginBottom: 12 }}>{error}</div>}
@@ -76,6 +80,6 @@ export default function CostAwarePlanPage() {
       </div>
       {loading && (<div className="loading" style={{ padding: 40 }}><div className="spinner"></div>AI is processing...</div>)}
       {result && !loading && (<AIOutput content={result} title="Cost-Aware Treatment Plan" />)}
-    </div>
+    </div></NativeAIControls>
   );
 }

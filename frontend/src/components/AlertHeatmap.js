@@ -26,7 +26,10 @@ export default function AlertHeatmap() {
         if (!r.ok) throw new Error(`Request failed: ${r.status}`);
         return r.json();
       })
-      .then((d) => setData({ days: d.days || [], rows: d.rows || [] }))
+      .then((d) => {
+        if (!Array.isArray(d?.days) || !Array.isArray(d?.rows)) throw new Error('Unexpected heatmap response: expected days and patient rows');
+        setData({ days: d.days, rows: d.rows });
+      })
       .catch((e) => setError(e.message || 'Failed to load heatmap'))
       .finally(() => setLoading(false));
   }, []);
@@ -106,7 +109,7 @@ export default function AlertHeatmap() {
                 >
                   {row.patient_name}
                 </div>
-                {row.days.map((cell) => {
+                {(Array.isArray(row.days) ? row.days : []).map((cell) => {
                   const sev = SEVERITY_COLORS[cell.severity] || SEVERITY_COLORS[0];
                   return (
                     <div

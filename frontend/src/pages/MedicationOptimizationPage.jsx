@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function MedicationOptimizationPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [conditions, setConditions] = useState('');
@@ -25,7 +29,7 @@ export default function MedicationOptimizationPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/medication-optimization/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/medication-optimization/${selectedPatient}`, { ...({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +41,7 @@ export default function MedicationOptimizationPage() {
             : undefined,
           goals
         })
-      });
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       if (res.status === 503) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'AI provider not configured. Set OPENROUTER_API_KEY on the server to enable medication optimization.');
@@ -54,7 +58,7 @@ export default function MedicationOptimizationPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>💊 Medication Regimen Optimization</h2></div>
         <div className="detail-body">
@@ -65,7 +69,7 @@ export default function MedicationOptimizationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
@@ -75,7 +79,7 @@ export default function MedicationOptimizationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Active conditions (comma-separated, optional)</label>
-            <input
+            <input data-ai-field="conditions"
               className="form-control"
               value={conditions}
               onChange={e => setConditions(e.target.value)}
@@ -85,7 +89,7 @@ export default function MedicationOptimizationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Clinician goals (optional)</label>
-            <textarea
+            <textarea data-ai-field="goals"
               className="form-control"
               rows={3}
               value={goals}
@@ -111,6 +115,6 @@ export default function MedicationOptimizationPage() {
       {result && !loading && (
         <AIOutput content={result} title="Medication Optimization" />
       )}
-    </div>
+    </div></NativeAIControls>
   );
 }

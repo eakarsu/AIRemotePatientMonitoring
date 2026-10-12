@@ -46,14 +46,14 @@ export const api = {
   ingestVitals: (data) => request('/vitals/ingest', { method: 'POST', body: JSON.stringify(data) }),
 
   // AI endpoints
-  aiHealthRisk: (patientId) => request(`/ai/health-risk/${patientId}`, { method: 'POST' }),
-  aiSymptomAnalysis: (patientId, symptoms) => request('/ai/symptom-analysis', { method: 'POST', body: JSON.stringify({ patient_id: patientId, symptoms }) }),
-  aiPredictive: (patientId) => request(`/ai/predictive/${patientId}`, { method: 'POST' }),
-  aiTreatment: (patientId, diagnosis) => request(`/ai/treatment/${patientId}`, { method: 'POST', body: JSON.stringify({ diagnosis }) }),
-  aiCarePlan: (patientId, conditions) => request(`/ai/care-plan/${patientId}`, { method: 'POST', body: JSON.stringify({ conditions }) }),
-  aiBilling: () => request('/ai/billing-optimization', { method: 'POST' }),
-  aiGenerateReport: (patientId) => request(`/ai/patient-reports/${patientId}/generate`, { method: 'POST' }),
-  aiCheckInteractions: (medications, patientId) => request('/ai/medications/check-interactions', { method: 'POST', body: JSON.stringify({ medications, patient_id: patientId }) }),
+  aiHealthRisk: (patientId, nativeRequestOptions = {}) => request(`/ai/health-risk/${patientId}`, { ...({ method: 'POST' }), ...(nativeRequestOptions) }),
+  aiSymptomAnalysis: (patientId, symptoms, nativeRequestOptions = {}) => request('/ai/symptom-analysis', { ...({ method: 'POST', body: JSON.stringify({ patient_id: patientId, symptoms }) }), ...(nativeRequestOptions) }),
+  aiPredictive: (patientId, nativeRequestOptions = {}) => request(`/ai/predictive/${patientId}`, { ...({ method: 'POST' }), ...(nativeRequestOptions) }),
+  aiTreatment: (patientId, diagnosis, nativeRequestOptions = {}) => request(`/ai/treatment/${patientId}`, { ...({ method: 'POST', body: JSON.stringify({ diagnosis }) }), ...(nativeRequestOptions) }),
+  aiCarePlan: (patientId, conditions, nativeRequestOptions = {}) => request(`/ai/care-plan/${patientId}`, { ...({ method: 'POST', body: JSON.stringify({ conditions }) }), ...(nativeRequestOptions) }),
+  aiBilling: (nativeRequestOptions = {}) => request('/ai/billing-optimization', { ...({ method: 'POST' }), ...(nativeRequestOptions) }),
+  aiGenerateReport: (patientId, nativeRequestOptions = {}) => request(`/ai/patient-reports/${patientId}/generate`, { ...({ method: 'POST' }), ...(nativeRequestOptions) }),
+  aiCheckInteractions: (medications, patientId, nativeRequestOptions = {}) => request('/ai/medications/check-interactions', { ...({ method: 'POST', body: JSON.stringify({ medications, patient_id: patientId }) }), ...(nativeRequestOptions) }),
   aiHistory: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/ai/history${qs ? '?' + qs : ''}`);

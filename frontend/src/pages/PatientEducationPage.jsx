@@ -1,8 +1,12 @@
+import NativeAIControls from "../components/NativeAIControls";
+import useNativeAIRequest from "../components/useNativeAIRequest";
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AIOutput from '../components/AIOutput';
 
 export default function PatientEducationPage() {
+  const nativeAIRequest = useNativeAIRequest();
+
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [topic, setTopic] = useState('hypertension self-care');
@@ -28,14 +32,14 @@ export default function PatientEducationPage() {
     setLoading(true); setError(''); setResult(null);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ai/patient-education/${selectedPatient}`, {
+      const res = await nativeAIRequest.run((signal) => fetch(`/api/ai/patient-education/${selectedPatient}`, { ...({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ topic, readingLevel, language, format, concerns })
-      });
+      }), ...({ signal }) }).then(async (response) => { await response.clone().arrayBuffer(); return response; }));
       if (res.status === 503) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'AI provider not configured. Set OPENROUTER_API_KEY on the server to enable education content generation.');
@@ -52,7 +56,7 @@ export default function PatientEducationPage() {
   };
 
   return (
-    <div>
+    <NativeAIControls busy={nativeAIRequest.busy} onCancel={nativeAIRequest.cancel} context="Remote Patient Monitoring"><div>
       <div className="detail-card" style={{ marginBottom: 24 }}>
         <div className="detail-header"><h2>📚 Patient Education Customizer</h2></div>
         <div className="detail-body">
@@ -64,7 +68,7 @@ export default function PatientEducationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Patient</label>
-            <select className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+            <select data-ai-field="selectedPatient" className="form-control" value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
               <option value="">Choose a patient...</option>
               {patients.map(p => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
@@ -74,7 +78,7 @@ export default function PatientEducationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Topic</label>
-            <input
+            <input data-ai-field="topic"
               className="form-control"
               value={topic}
               onChange={e => setTopic(e.target.value)}
@@ -85,7 +89,7 @@ export default function PatientEducationPage() {
           <div className="form-row" style={{ marginBottom: 16 }}>
             <div className="form-group">
               <label>Reading level</label>
-              <select className="form-control" value={readingLevel} onChange={e => setReadingLevel(e.target.value)}>
+              <select data-ai-field="readingLevel" className="form-control" value={readingLevel} onChange={e => setReadingLevel(e.target.value)}>
                 <option value="5th_grade">5th grade</option>
                 <option value="8th_grade">8th grade</option>
                 <option value="adult">Adult</option>
@@ -93,7 +97,7 @@ export default function PatientEducationPage() {
             </div>
             <div className="form-group">
               <label>Language</label>
-              <select className="form-control" value={language} onChange={e => setLanguage(e.target.value)}>
+              <select data-ai-field="language" className="form-control" value={language} onChange={e => setLanguage(e.target.value)}>
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
                 <option value="zh">Chinese</option>
@@ -103,7 +107,7 @@ export default function PatientEducationPage() {
             </div>
             <div className="form-group">
               <label>Format</label>
-              <select className="form-control" value={format} onChange={e => setFormat(e.target.value)}>
+              <select data-ai-field="format" className="form-control" value={format} onChange={e => setFormat(e.target.value)}>
                 <option value="bulleted">Bulleted</option>
                 <option value="narrative">Narrative</option>
                 <option value="qa">Q &amp; A</option>
@@ -113,7 +117,7 @@ export default function PatientEducationPage() {
 
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Specific concerns (optional)</label>
-            <textarea
+            <textarea data-ai-field="concerns"
               className="form-control"
               rows={3}
               value={concerns}
@@ -139,6 +143,6 @@ export default function PatientEducationPage() {
       {result && !loading && (
         <AIOutput content={result} title="Patient Education" />
       )}
-    </div>
+    </div></NativeAIControls>
   );
 }
